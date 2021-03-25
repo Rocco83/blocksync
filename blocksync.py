@@ -55,8 +55,9 @@ else:
     USE_NOREUSE = USE_DONTNEED = False
 
 def do_create(f, size):
-    f = open(f, 'a', 0)
+    f = open(f, 'ab', 0)
     f.truncate(size)
+    # close will always flush
     f.close()
 
 
@@ -221,6 +222,8 @@ def sync(workerid, srcdev, dsthost, dstdev, options):
             cmd += ['-i', options.keyfile]
         if options.compress:
             cmd += ['-C']
+        if options.sshport:
+            cmd += ['-p', options.sshport]
         if options.sshparams:
             cmd += options.sshparams.split()
         cmd += [dsthost]
@@ -331,7 +334,7 @@ def sync(workerid, srcdev, dsthost, dstdev, options):
             done_blocks = same_blocks + diff_blocks
             delta_blocks = done_blocks - last_blocks
             rate = delta_blocks * blocksize / (1024 * 1024 * (t1 - t_last))
-            print("[worker %d] same: %d, diff: %d, %d/%d, %5.1f MB/s (%s remaining)" % (workerid, same_blocks, diff_blocks, done_blocks, size_blocks, rate, timedelta(seconds = ceil((size_blocks - done_blocks) * (t1 - t0) / done_blocks))), file = options.outfile)
+            print("[worker %d] same: %d, diff: %d, %d/%d, %5.1f MB/s (%s remaining)" % (workerid, same_blocks, diff_blocks, done_blocks, size_blocks, rate, timedelta(seconds = ceil((size_blocks - done_blocks) * (t1 - t0) / done_blocks))), file = options.outfile, end = '\r')
             last_blocks = done_blocks
             t_last = t1
 
@@ -357,6 +360,7 @@ if __name__ == "__main__":
     parser.add_option("-p", "--pause", dest = "pause", type="int", help = "pause between processing blocks, reduces system load (ms, defaults to 0)", default = 0)
     parser.add_option("-c", "--cipher", dest = "cipher", help = "cipher specification for SSH (defaults to blowfish)", default = "blowfish")
     parser.add_option("-C", "--compress", dest = "compress", action = "store_true", help = "enable compression over SSH (defaults to on)", default = True)
+    parser.add_option("--sshport", dest = "sshport", help = "SSH port to be used (default 22)", default = "22")
     parser.add_option("-i", "--id", dest = "keyfile", help = "SSH public key file")
     parser.add_option("-P", "--pass", dest = "passenv", help = "environment variable containing SSH password (requires sshpass)")
     parser.add_option("-s", "--sudo", dest = "sudo", action = "store_true", help = "use sudo on the remote end (defaults to off)", default = False)
